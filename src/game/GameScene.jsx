@@ -9,6 +9,8 @@ const GameScene = () => {
   useEffect(() => {
     if (!gameStarted) return;
 
+
+      // Phaser game configuration
     const config = {
       type: Phaser.AUTO,
       width: 800,
@@ -31,6 +33,8 @@ const GameScene = () => {
     let scoreText;
     let gameOver = false;
 
+    
+        // Preload function: Load all assets before the game starts
     function preload() {
       this.load.image("sky", "assets/sky.png");
       this.load.image("ground", "assets/platform.png");
@@ -45,18 +49,22 @@ const GameScene = () => {
     function create() {
       this.add.image(400, 300, "sky");
 
+      // Create a group of static platforms
       this.platforms = this.physics.add.staticGroup();
       this.platforms.create(400, 568, "ground").setScale(2).refreshBody();
       this.platforms.create(600, 400, "ground");
       this.platforms.create(50, 250, "ground");
       this.platforms.create(750, 220, "ground");
 
+       // Create the player sprite
       this.player = this.physics.add.sprite(100, 450, "dude");
       this.player.setBounce(0.2);
       this.player.setCollideWorldBounds(true);
       this.player.body.setGravityY(300);
       this.physics.add.collider(this.player, this.platforms);
 
+
+       // Create animations for the player
       this.anims.create({
         key: "left",
         frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 3 }),
@@ -92,22 +100,27 @@ const GameScene = () => {
 
       this.cursors = this.input.keyboard.createCursorKeys();
 
+
+      // Display the score on the screen
       scoreText = this.add.text(16, 16, "Score: 0", {
         fontSize: "32px",
         fill: "#000",
       });
     }
 
+     // Function to handle collecting stars
     function collectStar(player, star) {
       star.disableBody(true, true);
       score += 10;
       scoreText.setText("Score: " + score);
-
+      // If all stars are collected, reset them and spawn a bomb
       if (this.stars.countActive(true) === 0) {
         this.stars.children.iterate((child) => {
           child.enableBody(true, child.x, 0, true, true);
         });
 
+        
+        // Spawn a bomb at a random position
         const x = player.x < 400 ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
         const bomb = this.bombs.create(x, 16, "bomb");
         bomb.setBounce(1);
@@ -127,6 +140,8 @@ const GameScene = () => {
     function update() {
       if (gameOver) return;
 
+
+      // Handle player movement
       if (this.cursors.left.isDown) {
         this.player.setVelocityX(-160);
         this.player.anims.play("left", true);
@@ -138,6 +153,8 @@ const GameScene = () => {
         this.player.anims.play("turn");
       }
 
+
+         // Handle player jumping
       if (this.cursors.up.isDown && this.player.body.touching.down) {
         this.player.setVelocityY(-550);
       }
