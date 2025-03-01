@@ -18,10 +18,10 @@ This project is a simple Phaser 3 game built using React. The game is initialize
 ## Screenshot
 
 ### Game Start Screen
-![Start Screenshot](public/Start.png)
+![Start Screenshot](public/assets/Start.png)
 
 ### In-Game Screenshot
-![In-Game Screenshot](public/Game.png)
+![In-Game Screenshot](public/assets/Game.png)
 ## Getting Started
 
 ### Prerequisites
