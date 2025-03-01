@@ -1,4 +1,4 @@
-import  { useEffect } from 'react';
+import { useEffect } from 'react';
 import Phaser from 'phaser';
 
 const GameScene = () => {
@@ -11,7 +11,7 @@ const GameScene = () => {
       physics: {
         default: 'arcade',
         arcade: {
-          gravity: { y: 300 },
+          gravity: { y: 30 },
           debug: false,
         },
       },
@@ -24,6 +24,7 @@ const GameScene = () => {
 
     let score = 0;
     let scoreText;
+    let gameOver = false;
 
     function preload() {
       this.load.image('sky', 'assets/sky.png');
@@ -50,7 +51,7 @@ const GameScene = () => {
       this.player = this.physics.add.sprite(100, 450, 'dude');
       this.player.setBounce(0.2);
       this.player.setCollideWorldBounds(true);
-      this.player.body.setGravityY(300);
+      this.player.body.setGravityY(30);
       this.physics.add.collider(this.player, this.platforms);
 
       // Animations
@@ -84,6 +85,11 @@ const GameScene = () => {
       this.physics.add.collider(this.stars, this.platforms);
       this.physics.add.overlap(this.player, this.stars, collectStar, null, this);
 
+      // Bombs
+      this.bombs = this.physics.add.group();
+      this.physics.add.collider(this.bombs, this.platforms);
+      this.physics.add.collider(this.player, this.bombs, hitBomb, null, this);
+
       // Keyboard input
       this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -98,9 +104,32 @@ const GameScene = () => {
       star.disableBody(true, true);
       score += 10;
       scoreText.setText('Score: ' + score);
+
+      // When all stars are collected, reset them and spawn a bomb
+      if (this.stars.countActive(true) === 0) {
+        this.stars.children.iterate((child) => {
+          child.enableBody(true, child.x, 0, true, true);
+        });
+
+        // Spawn a bomb at a random position
+        const x = player.x < 400 ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+        const bomb = this.bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+      }
+    }
+
+    function hitBomb(player, bomb) {
+      this.physics.pause();
+      player.setTint(0xff0000);
+      player.anims.play('turn');
+      gameOver = true;
     }
 
     function update() {
+      if (gameOver) return;
+
       if (this.cursors.left.isDown) {
         this.player.setVelocityX(-160);
         this.player.anims.play('left', true);
@@ -120,7 +149,7 @@ const GameScene = () => {
     // Initialize the Phaser game
     const game = new Phaser.Game(config);
 
-   
+    // Cleanup when component unmounts
     return () => {
       game.destroy(true);
     };

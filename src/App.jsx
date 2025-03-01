@@ -1,4 +1,4 @@
-import React from 'react';
+
 import GameScene from '../src/game/GameScene'
 
 function App() {
