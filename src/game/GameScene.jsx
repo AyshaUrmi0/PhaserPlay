@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import  { useEffect } from 'react';
 import Phaser from 'phaser';
 
 const GameScene = () => {
@@ -22,7 +22,9 @@ const GameScene = () => {
       },
     };
 
-    // Load assets and create game objects
+    let score = 0;
+    let scoreText;
+
     function preload() {
       this.load.image('sky', 'assets/sky.png');
       this.load.image('ground', 'assets/platform.png');
@@ -34,30 +36,24 @@ const GameScene = () => {
       });
     }
 
-    let platforms;
-    let player;
-    let cursors;
-    let stars;
-    let score = 0;
-    let scoreText;
-
     function create() {
       this.add.image(400, 300, 'sky');
 
-      platforms = this.physics.add.staticGroup();
+      // Platforms
+      this.platforms = this.physics.add.staticGroup();
+      this.platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+      this.platforms.create(600, 400, 'ground');
+      this.platforms.create(50, 250, 'ground');
+      this.platforms.create(750, 220, 'ground');
 
-      platforms.create(400, 568, 'ground').setScale(2).refreshBody();
-      platforms.create(600, 400, 'ground');
-      platforms.create(50, 250, 'ground');
-      platforms.create(750, 220, 'ground');
+      // Player setup
+      this.player = this.physics.add.sprite(100, 450, 'dude');
+      this.player.setBounce(0.2);
+      this.player.setCollideWorldBounds(true);
+      this.player.body.setGravityY(300);
+      this.physics.add.collider(this.player, this.platforms);
 
-      player = this.physics.add.sprite(100, 450, 'dude');
-
-      player.setBounce(0.2);
-      player.setCollideWorldBounds(true);
-      player.body.setGravityY(300);
-      this.physics.add.collider(player, platforms);
-
+      // Animations
       this.anims.create({
         key: 'left',
         frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
@@ -78,23 +74,20 @@ const GameScene = () => {
         repeat: -1,
       });
 
-      // Initialize stars
-      stars = this.physics.add.group({
+      // Stars
+      this.stars = this.physics.add.group({
         key: 'star',
         repeat: 11,
         setXY: { x: 12, y: 0, stepX: 70 },
       });
 
-      // Add collider for stars and platforms
-      this.physics.add.collider(stars, platforms);
+      this.physics.add.collider(this.stars, this.platforms);
+      this.physics.add.overlap(this.player, this.stars, collectStar, null, this);
 
-      // Add overlap for player and stars
-      this.physics.add.overlap(player, stars, collectStar, null, this);
+      // Keyboard input
+      this.cursors = this.input.keyboard.createCursorKeys();
 
-      // Initialize cursors
-      cursors = this.input.keyboard.createCursorKeys();
-
-      // Initialize score text
+      // Score text
       scoreText = this.add.text(16, 16, 'Score: 0', {
         fontSize: '32px',
         fill: '#000',
@@ -108,26 +101,26 @@ const GameScene = () => {
     }
 
     function update() {
-      if (cursors.left.isDown) {
-        player.setVelocityX(-160);
-        player.anims.play('left', true);
-      } else if (cursors.right.isDown) {
-        player.setVelocityX(160);
-        player.anims.play('right', true);
+      if (this.cursors.left.isDown) {
+        this.player.setVelocityX(-160);
+        this.player.anims.play('left', true);
+      } else if (this.cursors.right.isDown) {
+        this.player.setVelocityX(160);
+        this.player.anims.play('right', true);
       } else {
-        player.setVelocityX(0);
-        player.anims.play('turn');
+        this.player.setVelocityX(0);
+        this.player.anims.play('turn');
       }
 
-      if (cursors.up.isDown && player.body.touching.down) {
-        player.setVelocityY(-330);
+      if (this.cursors.up.isDown && this.player.body.touching.down) {
+        this.player.setVelocityY(-330);
       }
     }
 
     // Initialize the Phaser game
     const game = new Phaser.Game(config);
 
-    // Cleanup the game when the component unmounts
+   
     return () => {
       game.destroy(true);
     };
