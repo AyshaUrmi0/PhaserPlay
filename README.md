@@ -15,6 +15,13 @@ This project is a simple Phaser 3 game built using React. The game is initialize
 - **Game Elements**: Player movement, collectible items, obstacles, and scoring system.
 - **Responsive Design**: The game adjusts to viewport changes.
 
+## Screenshot
+
+### Game Start Screen
+![Start Screenshot](assets/Start.png)
+
+### In-Game Screenshot
+![In-Game Screenshot](assets/Game.png)
 ## Getting Started
 
 ### Prerequisites
