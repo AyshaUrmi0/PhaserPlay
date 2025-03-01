@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import Phaser from "phaser";
 import GameButton from "../config/GameButton"
+
 
 const GameScene = () => {
   const [gameStarted, setGameStarted] = useState(false);

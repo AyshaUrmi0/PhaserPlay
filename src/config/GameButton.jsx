@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 
 import { buttonConfig } from "../config/button-config"; 
 
@@ -10,3 +11,5 @@ const GameButton = ({ onClick }) => {
 };
 
 export default GameButton;
+
+
