@@ -1,23 +1,13 @@
-import  { useState } from "react";
-import Game from "./components/Game";
-import { buttonConfig } from "./config/button-config";
+import React from 'react';
+import GameScene from '../src/game/GameScene'
 
-const App = () => {
-  const [gameStarted, setGameStarted] = useState(false);
-
+function App() {
   return (
-    <div style={{ textAlign: "center" }}>
-      {!gameStarted && (
-        <button
-          onClick={() => setGameStarted(true)}
-          style={buttonConfig.buttonStyle}
-        >
-          {buttonConfig.buttonText}
-        </button>
-      )}
-      {gameStarted && <Game />}
+    <div className="App">
+      <h1>Phaser Game in Vite + React</h1>
+    <GameScene/>
     </div>
   );
-};
+}
 
 export default App;
