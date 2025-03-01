@@ -152,8 +152,22 @@ const GameScene = () => {
 
   return (
     <div id="phaser-game">
-      {!gameStarted && <GameButton onClick={() => setGameStarted(true)} />}
-    </div>
+    {!gameStarted && (
+      <div
+        style={{
+          backgroundImage:"url('/assets/sky.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          height: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+        {' '}
+        <GameButton onClick={() => setGameStarted(true)} />{' '}
+      </div>
+    )}
+  </div>
   );
 };
 
