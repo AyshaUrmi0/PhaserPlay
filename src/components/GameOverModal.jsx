@@ -90,19 +90,19 @@ const GameOverModal = ({ data, onRestart, onMenu }) => {
           style={{
             background: "rgba(0, 0, 0, 0.35)",
             borderRadius: "14px",
-            padding: "20px",
+            padding: "18px 20px",
             margin: "16px 0 24px 0",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "16px",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: "12px",
           }}
         >
           <div>
             <div
               style={{
                 color: "#94A3B8",
-                fontSize: "13px",
+                fontSize: "12px",
                 fontWeight: "600",
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",
@@ -113,7 +113,7 @@ const GameOverModal = ({ data, onRestart, onMenu }) => {
             <div
               style={{
                 color: "#38BDF8",
-                fontSize: "32px",
+                fontSize: "26px",
                 fontWeight: "800",
               }}
             >
@@ -125,7 +125,30 @@ const GameOverModal = ({ data, onRestart, onMenu }) => {
             <div
               style={{
                 color: "#94A3B8",
-                fontSize: "13px",
+                fontSize: "12px",
+                fontWeight: "600",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Wave
+            </div>
+            <div
+              style={{
+                color: "#A855F7",
+                fontSize: "26px",
+                fontWeight: "800",
+              }}
+            >
+              🚩 {data.wave || 1}
+            </div>
+          </div>
+
+          <div>
+            <div
+              style={{
+                color: "#94A3B8",
+                fontSize: "12px",
                 fontWeight: "600",
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",
@@ -136,7 +159,7 @@ const GameOverModal = ({ data, onRestart, onMenu }) => {
             <div
               style={{
                 color: "#FBBF24",
-                fontSize: "32px",
+                fontSize: "26px",
                 fontWeight: "800",
               }}
             >
@@ -146,7 +169,7 @@ const GameOverModal = ({ data, onRestart, onMenu }) => {
 
           <div
             style={{
-              gridColumn: "span 2",
+              gridColumn: "span 3",
               paddingTop: "12px",
               borderTop: "1px solid rgba(255, 255, 255, 0.08)",
               display: "flex",
