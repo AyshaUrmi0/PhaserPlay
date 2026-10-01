@@ -4,11 +4,13 @@ import StartScreen from "../components/StartScreen";
 import GameOverModal from "../components/GameOverModal";
 import SoundToggle from "../components/SoundToggle";
 import TouchControls from "../components/TouchControls";
+import PauseModal from "../components/PauseModal";
 import { soundEffects } from "../utils/audio";
 const GameScene = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameKey, setGameKey] = useState(0);
   const [gameOverData, setGameOverData] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem("phaserplay_highscore") || "0", 10);
   });
@@ -31,8 +33,33 @@ const GameScene = () => {
 
   const returnToMenu = () => {
     setGameOverData(null);
+    setIsPaused(false);
     setGameStarted(false);
   };
+
+    const togglePause = () => {
+    setIsPaused((prev) => {
+      const next = !prev;
+      if (gameRef.current && gameRef.current.scene && gameRef.current.scene.scenes[0]) {
+        if (next) {
+          gameRef.current.scene.scenes[0].physics.pause();
+        } else {
+          gameRef.current.scene.scenes[0].physics.resume();
+        }
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const handleGlobalPauseKey = (e) => {
+      if ((e.key === "p" || e.key === "P" || e.key === "Escape") && gameStarted && !gameOverData) {
+        togglePause();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalPauseKey);
+    return () => window.removeEventListener("keydown", handleGlobalPauseKey);
+  }, [gameStarted, gameOverData]);
 
   useEffect(() => {
     if (!gameStarted) return;
@@ -45,6 +72,8 @@ const GameScene = () => {
     let isInvulnerable = false;
     let wave = 1;
     let jumpCount = 0;
+    let hasShield = false;
+    let shieldGraphics;
 
     const getHearts = (count) => {
       return "❤️".repeat(Math.max(0, count)) + "🤍".repeat(Math.max(0, 3 - count));
@@ -128,6 +157,47 @@ const GameScene = () => {
       this.physics.add.collider(this.stars, this.platforms);
       this.physics.add.overlap(this.player, this.stars, collectStar, null, this);
 
+            // Procedural textures for Shield & Diamond Power-ups
+      if (!this.textures.exists("shield_item")) {
+        const g = this.add.graphics();
+        g.fillStyle(0x0284c7, 0.9);
+        g.fillCircle(12, 12, 11);
+        g.lineStyle(2, 0x38bdf8, 1);
+        g.strokeCircle(12, 12, 11);
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(10, 5, 4, 14);
+        g.fillRect(5, 10, 14, 4);
+        g.generateTexture("shield_item", 24, 24);
+        g.destroy();
+      }
+
+      if (!this.textures.exists("diamond_item")) {
+        const g = this.add.graphics();
+        g.fillStyle(0x38bdf8, 1);
+        g.beginPath();
+        g.moveTo(12, 2);
+        g.lineTo(22, 12);
+        g.lineTo(12, 22);
+        g.lineTo(2, 12);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(2, 0xffffff, 0.9);
+        g.strokePath();
+        g.generateTexture("diamond_item", 24, 24);
+        g.destroy();
+      }
+
+      // Power-up Groups
+      this.shields = this.physics.add.group();
+      this.diamonds = this.physics.add.group();
+      this.physics.add.collider(this.shields, this.platforms);
+      this.physics.add.collider(this.diamonds, this.platforms);
+      this.physics.add.overlap(this.player, this.shields, collectShield, null, this);
+      this.physics.add.overlap(this.player, this.diamonds, collectDiamond, null, this);
+
+      // Active player shield bubble graphics
+      shieldGraphics = this.add.graphics();
+
       // Bombs
       this.bombs = this.physics.add.group();
       this.physics.add.collider(this.bombs, this.platforms);
@@ -173,6 +243,54 @@ const GameScene = () => {
         stroke: "#000000",
         strokeThickness: 4,
         shadow: { blur: 4, color: "#000000", fill: true },
+      });
+    }
+
+        function collectShield(player, shield) {
+      shield.disableBody(true, true);
+      hasShield = true;
+      soundEffects.playShield();
+
+      const shieldText = this.add.text(player.x - 20, player.y - 30, "🛡️ SHIELD!", {
+        fontSize: "16px",
+        fontFamily: "'Segoe UI', Roboto, sans-serif",
+        fontStyle: "bold",
+        fill: "#38BDF8",
+        stroke: "#000000",
+        strokeThickness: 3,
+      });
+      this.tweens.add({
+        targets: shieldText,
+        y: player.y - 65,
+        alpha: 0,
+        duration: 700,
+        onComplete: () => shieldText.destroy(),
+      });
+    }
+
+    function collectDiamond(player, diamond) {
+      diamond.disableBody(true, true);
+      score += 50;
+      soundEffects.playDiamond();
+      const currentBest = Math.max(score, highScore);
+      scoreText.setText(
+        `Score: ${score}   🚩 Wave ${wave}   ${getHearts(lives)}   🏆 Best: ${currentBest}`
+      );
+
+      const dText = this.add.text(diamond.x, diamond.y - 10, "+50 💎", {
+        fontSize: "18px",
+        fontFamily: "'Segoe UI', Roboto, sans-serif",
+        fontStyle: "bold",
+        fill: "#38BDF8",
+        stroke: "#000000",
+        strokeThickness: 4,
+      });
+      this.tweens.add({
+        targets: dText,
+        y: diamond.y - 45,
+        alpha: 0,
+        duration: 700,
+        onComplete: () => dText.destroy(),
       });
     }
 
@@ -230,6 +348,20 @@ const GameScene = () => {
           child.enableBody(true, child.x, 0, true, true);
         });
 
+                // Spawn Bonus Diamond on wave clear
+        const dx = Phaser.Math.Between(80, 720);
+        const diamond = this.diamonds.create(dx, 60, "diamond_item");
+        diamond.setBounce(0.3);
+        diamond.setCollideWorldBounds(true);
+
+        // Spawn Shield Orb every 2 waves
+        if (wave % 2 === 0) {
+          const sx = Phaser.Math.Between(100, 700);
+          const shield = this.shields.create(sx, 60, "shield_item");
+          shield.setBounce(0.2);
+          shield.setCollideWorldBounds(true);
+        }
+
         const x =
           player.x < 400
             ? Phaser.Math.Between(400, 800)
@@ -241,8 +373,35 @@ const GameScene = () => {
       }
     }
 
-    function hitBomb(player, bomb) {
+        function hitBomb(player, bomb) {
       if (gameOver || isInvulnerable) return;
+
+      // Shield blocks bomb damage completely!
+      if (hasShield) {
+        hasShield = false;
+        soundEffects.playShieldBreak();
+        this.cameras.main.shake(150, 0.01);
+
+        const blockedText = this.add.text(player.x - 30, player.y - 30, "🛡️ DEFLECTED!", {
+          fontSize: "16px",
+          fontFamily: "'Segoe UI', Roboto, sans-serif",
+          fontStyle: "bold",
+          fill: "#38BDF8",
+          stroke: "#000000",
+          strokeThickness: 3,
+        });
+        this.tweens.add({
+          targets: blockedText,
+          y: player.y - 65,
+          alpha: 0,
+          duration: 700,
+          onComplete: () => blockedText.destroy(),
+        });
+
+        // Knock bomb back
+        bomb.setVelocity(Phaser.Math.Between(-240, 240), -200);
+        return;
+      }
 
       lives -= 1;
       const currentBest = Math.max(score, highScore);
@@ -329,6 +488,18 @@ const GameScene = () => {
 
     function update() {
       if (gameOver) return;
+
+      // Render pulsating shield bubble around player
+      if (shieldGraphics) {
+        shieldGraphics.clear();
+        if (hasShield && this.player && !gameOver) {
+          const pulse = 0.75 + Math.sin(this.time.now / 150) * 0.25;
+          shieldGraphics.lineStyle(3, 0x38bdf8, pulse);
+          shieldGraphics.fillStyle(0x0ea5e9, 0.22);
+          shieldGraphics.strokeCircle(this.player.x, this.player.y, 28);
+          shieldGraphics.fillCircle(this.player.x, this.player.y, 28);
+        }
+      }
 
       // Reset jump count on landing
       if (this.player.body.touching.down) {
@@ -444,6 +615,52 @@ const GameScene = () => {
       }}
     >
       <SoundToggle />
+
+      {/* Pause Button in top bar */}
+      {gameStarted && !gameOverData && (
+        <button
+          onClick={togglePause}
+          title="Pause Game (P or Esc)"
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "130px",
+            background: "rgba(17, 24, 39, 0.8)",
+            backdropFilter: "blur(8px)",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            borderRadius: "999px",
+            padding: "8px 16px",
+            color: "#E5E7EB",
+            fontSize: "14px",
+            fontWeight: "600",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            zIndex: 50,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(168, 85, 247, 0.35)";
+            e.currentTarget.style.borderColor = "rgba(168, 85, 247, 0.6)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(17, 24, 39, 0.8)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.15)";
+          }}
+        >
+          <span>⏸️</span>
+          <span>Pause</span>
+        </button>
+      )}
+
+      <PauseModal
+        isOpen={isPaused}
+        onResume={togglePause}
+        onRestart={restartGame}
+        onMenu={returnToMenu}
+      />
 
       <TouchControls
         active={gameStarted}
