@@ -30,6 +30,12 @@ const GameScene = () => {
     let scoreText;
     let gameOver = false;
     let mouseControlActive = false;
+    let lives = 3;
+    let isInvulnerable = false;
+
+    const getHearts = (count) => {
+      return "❤️".repeat(Math.max(0, count)) + "🤍".repeat(Math.max(0, 3 - count));
+    };
 
     // Phaser game configuration
     const config = {
@@ -143,7 +149,7 @@ const GameScene = () => {
       });
 
       // Score HUD
-      scoreText = this.add.text(16, 16, `Score: 0   🏆 Best: ${highScore}`, {
+      scoreText = this.add.text(16, 16, `Score: 0   ${getHearts(3)}   🏆 Best: ${highScore}`, {
         fontSize: "22px",
         fontFamily: "'Segoe UI', Roboto, sans-serif",
         fontStyle: "bold",
@@ -158,7 +164,26 @@ const GameScene = () => {
       star.disableBody(true, true);
       score += 10;
       const currentBest = Math.max(score, highScore);
-      scoreText.setText(`Score: ${score}   🏆 Best: ${currentBest}`);
+      scoreText.setText(
+        `Score: ${score}   ${getHearts(lives)}   🏆 Best: ${currentBest}`
+      );
+
+      // Floating +10 score feedback
+      const floatText = this.add.text(star.x, star.y - 10, "+10", {
+        fontSize: "16px",
+        fontFamily: "'Segoe UI', Roboto, sans-serif",
+        fontStyle: "bold",
+        fill: "#FBBF24",
+        stroke: "#000000",
+        strokeThickness: 3,
+      });
+      this.tweens.add({
+        targets: floatText,
+        y: star.y - 40,
+        alpha: 0,
+        duration: 600,
+        onComplete: () => floatText.destroy(),
+      });
 
       if (this.stars.countActive(true) === 0) {
         this.stars.children.iterate((child) => {
@@ -177,34 +202,85 @@ const GameScene = () => {
     }
 
     function hitBomb(player, bomb) {
-      if (gameOver) return;
-      gameOver = true;
+      if (gameOver || isInvulnerable) return;
 
-      this.physics.pause();
-      player.setTint(0xff0000);
-      player.anims.play("turn");
-      this.cameras.main.shake(250, 0.015);
-
-      const currentBest = parseInt(
-        localStorage.getItem("phaserplay_highscore") || "0",
-        10
+      lives -= 1;
+      const currentBest = Math.max(score, highScore);
+      scoreText.setText(
+        `Score: ${score}   ${getHearts(lives)}   🏆 Best: ${currentBest}`
       );
-      const isNewHigh = score > currentBest;
-      const finalBest = Math.max(score, currentBest);
 
-      if (isNewHigh) {
-        localStorage.setItem("phaserplay_highscore", finalBest.toString());
-        setHighScore(finalBest);
-      }
+      // Floating damage indicator
+      const damageText = this.add.text(player.x - 15, player.y - 25, "-1 ❤️", {
+        fontSize: "18px",
+        fontFamily: "'Segoe UI', Roboto, sans-serif",
+        fontStyle: "bold",
+        fill: "#EF4444",
+        stroke: "#000000",
+        strokeThickness: 3,
+      });
+      this.tweens.add({
+        targets: damageText,
+        y: player.y - 65,
+        alpha: 0,
+        duration: 700,
+        onComplete: () => damageText.destroy(),
+      });
 
-      setTimeout(() => {
-        setGameOverData({
-          score,
-          stars: Math.floor(score / 10),
-          highScore: finalBest,
-          isNewHigh,
+      // Impact camera shake
+      this.cameras.main.shake(200, 0.015);
+
+      if (lives <= 0) {
+        gameOver = true;
+        this.physics.pause();
+        player.setTint(0xff0000);
+        player.anims.play("turn");
+
+        const currentBest = parseInt(
+          localStorage.getItem("phaserplay_highscore") || "0",
+          10
+        );
+        const isNewHigh = score > currentBest;
+        const finalBest = Math.max(score, currentBest);
+
+        if (isNewHigh) {
+          localStorage.setItem("phaserplay_highscore", finalBest.toString());
+          setHighScore(finalBest);
+        }
+
+        setTimeout(() => {
+          setGameOverData({
+            score,
+            stars: Math.floor(score / 10),
+            highScore: finalBest,
+            isNewHigh,
+          });
+        }, 600);
+      } else {
+        // Recovery & Invulnerability period (~1.4s)
+        isInvulnerable = true;
+
+        // Knockback away from bomb
+        player.setVelocityY(-220);
+        const bounceX = player.x < bomb.x ? -140 : 140;
+        player.setVelocityX(bounceX);
+
+        // Flashing blink tween
+        player.setTint(0xff6b6b);
+        this.tweens.add({
+          targets: player,
+          alpha: 0.25,
+          duration: 120,
+          ease: "Linear",
+          yoyo: true,
+          repeat: 5,
+          onComplete: () => {
+            player.clearTint();
+            player.alpha = 1;
+            isInvulnerable = false;
+          },
         });
-      }, 600);
+      }
     }
 
     function update() {
