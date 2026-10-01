@@ -29,6 +29,7 @@ const GameScene = () => {
     let score = 0;
     let scoreText;
     let gameOver = false;
+    let mouseControlActive = false;
 
     // Phaser game configuration
     const config = {
@@ -113,7 +114,7 @@ const GameScene = () => {
       this.physics.add.collider(this.bombs, this.platforms);
       this.physics.add.collider(this.player, this.bombs, hitBomb, null, this);
 
-      // Controls: Cursors + WASD + Space
+      // Controls: Keyboard (Cursors + WASD + Space)
       this.cursors = this.input.keyboard.createCursorKeys();
       this.wasd = this.input.keyboard.addKeys({
         up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -121,6 +122,24 @@ const GameScene = () => {
         down: Phaser.Input.Keyboard.KeyCodes.S,
         right: Phaser.Input.Keyboard.KeyCodes.D,
         space: Phaser.Input.Keyboard.KeyCodes.SPACE,
+      });
+
+      // Mouse & Pointer Controls
+      this.input.on("pointermove", () => {
+        mouseControlActive = true;
+      });
+
+      // Jump on mouse click / tap
+      this.input.on("pointerdown", () => {
+        mouseControlActive = true;
+        if (
+          this.player &&
+          this.player.body &&
+          this.player.body.touching.down &&
+          !gameOver
+        ) {
+          this.player.setVelocityY(-550);
+        }
       });
 
       // Score HUD
@@ -191,12 +210,41 @@ const GameScene = () => {
     function update() {
       if (gameOver) return;
 
-      const isLeft = this.cursors.left.isDown || this.wasd.left.isDown;
-      const isRight = this.cursors.right.isDown || this.wasd.right.isDown;
-      const isJump =
+      const isKeyLeft = this.cursors.left.isDown || this.wasd.left.isDown;
+      const isKeyRight = this.cursors.right.isDown || this.wasd.right.isDown;
+      const isKeyJump =
         this.cursors.up.isDown ||
         this.wasd.up.isDown ||
         this.wasd.space.isDown;
+
+      // Yield mouse control when keyboard is used
+      if (isKeyLeft || isKeyRight || isKeyJump) {
+        mouseControlActive = false;
+      }
+
+      let isLeft = isKeyLeft;
+      let isRight = isKeyRight;
+      let isJump = isKeyJump;
+
+      // Mouse pointer guidance
+      if (mouseControlActive) {
+        const pointer = this.input.activePointer;
+        if (
+          pointer &&
+          pointer.x >= 0 &&
+          pointer.x <= 800 &&
+          pointer.y >= 0 &&
+          pointer.y <= 600
+        ) {
+          const deltaX = pointer.x - this.player.x;
+          // Deadzone of 25px so character stands still when under the cursor
+          if (deltaX < -25) {
+            isLeft = true;
+          } else if (deltaX > 25) {
+            isRight = true;
+          }
+        }
+      }
 
       if (isLeft) {
         this.player.setVelocityX(-160);

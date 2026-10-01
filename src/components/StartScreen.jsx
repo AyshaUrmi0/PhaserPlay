@@ -67,29 +67,31 @@ const StartScreen = ({ highScore, onStart }) => {
       <div
         style={{
           position: "absolute",
-          bottom: "8%",
-          background: "rgba(17, 24, 39, 0.85)",
+          bottom: "7%",
+          background: "rgba(17, 24, 39, 0.9)",
           backdropFilter: "blur(8px)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          borderRadius: "12px",
-          padding: "12px 24px",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderRadius: "14px",
+          padding: "14px 26px",
           color: "#E5E7EB",
           fontSize: "14px",
           display: "flex",
-          gap: "16px",
+          gap: "20px",
           alignItems: "center",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          flexWrap: "wrap",
+          justifyContent: "center",
         }}
       >
-        <span>
-          Move: <strong style={{ color: "#A855F7" }}>← →</strong> or{" "}
-          <strong style={{ color: "#A855F7" }}>A / D</strong>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          🖱️ <strong>Mouse:</strong> Move cursor to guide |{" "}
+          <strong style={{ color: "#A855F7" }}>Click</strong> to Jump
         </span>
-        <span style={{ opacity: 0.4 }}>|</span>
-        <span>
-          Jump: <strong style={{ color: "#A855F7" }}>↑</strong> or{" "}
-          <strong style={{ color: "#A855F7" }}>W</strong> or{" "}
-          <strong style={{ color: "#A855F7" }}>Space</strong>
+        <span style={{ opacity: 0.35 }}>|</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          ⌨️ <strong>Keys:</strong> <strong style={{ color: "#A855F7" }}>← →</strong> /{" "}
+          <strong style={{ color: "#A855F7" }}>A D</strong> to move |{" "}
+          <strong style={{ color: "#A855F7" }}>↑ / W / Space</strong> to jump
         </span>
       </div>
     </div>
