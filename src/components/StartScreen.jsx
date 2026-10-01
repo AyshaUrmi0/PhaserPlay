@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import GameButton from "../config/GameButton";
 
-const StartScreen = ({ highScore, onStart }) => {
+const StartScreen = ({ highScore, onStart, onOpenLeaderboard }) => {
   return (
     <div
       style={{
@@ -41,24 +41,39 @@ const StartScreen = ({ highScore, onStart }) => {
         >
           🕹️ PHASER PLAY
         </h1>
-        <div
+        <button
+          onClick={onOpenLeaderboard}
+          title="Click to view Top Runs Leaderboard"
           style={{
-            background: "rgba(17, 24, 39, 0.75)",
+            background: "rgba(17, 24, 39, 0.8)",
             backdropFilter: "blur(8px)",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
-            padding: "8px 20px",
+            border: "1px solid rgba(251, 191, 36, 0.35)",
+            padding: "8px 22px",
             borderRadius: "999px",
             color: "#FBBF24",
-            fontSize: "18px",
+            fontSize: "17px",
             fontWeight: "700",
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "scale(1.05)";
+            e.currentTarget.style.borderColor = "rgba(251, 191, 36, 0.7)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.borderColor = "rgba(251, 191, 36, 0.35)";
           }}
         >
-          🏆 High Score: {highScore}
-        </div>
+          <span>🏆 Best: {highScore}</span>
+          <span style={{ fontSize: "12px", opacity: 0.75, borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: "8px" }}>
+            Leaderboard 📊
+          </span>
+        </button>
       </div>
 
       <GameButton onClick={onStart} />

@@ -5,12 +5,14 @@ import GameOverModal from "../components/GameOverModal";
 import SoundToggle from "../components/SoundToggle";
 import TouchControls from "../components/TouchControls";
 import PauseModal from "../components/PauseModal";
+import LeaderboardModal from "../components/LeaderboardModal";
 import { soundEffects } from "../utils/audio";
 const GameScene = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameKey, setGameKey] = useState(0);
   const [gameOverData, setGameOverData] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem("phaserplay_highscore") || "0", 10);
   });
@@ -73,6 +75,9 @@ const GameScene = () => {
     let wave = 1;
     let jumpCount = 0;
     let hasShield = false;
+    let comboCount = 0;
+    let lastStarTime = 0;
+    let wasInAir = false;
     let shieldGraphics;
 
     const getHearts = (count) => {
@@ -187,6 +192,23 @@ const GameScene = () => {
         g.destroy();
       }
 
+            // Procedural particles (Sparkles & Landing Dust)
+      if (!this.textures.exists("spark_particle")) {
+        const g = this.add.graphics();
+        g.fillStyle(0xfbbf24, 1);
+        g.fillCircle(3, 3, 3);
+        g.generateTexture("spark_particle", 6, 6);
+        g.destroy();
+      }
+
+      if (!this.textures.exists("dust_particle")) {
+        const g = this.add.graphics();
+        g.fillStyle(0xffffff, 0.6);
+        g.fillCircle(3, 3, 3);
+        g.generateTexture("dust_particle", 6, 6);
+        g.destroy();
+      }
+
       // Power-up Groups
       this.shields = this.physics.add.group();
       this.diamonds = this.physics.add.group();
@@ -296,30 +318,59 @@ const GameScene = () => {
 
     function collectStar(player, star) {
       star.disableBody(true, true);
-      score += 10;
+
+      // Combo system (Within 2.5s window)
+      const now = this.time.now;
+      if (now - lastStarTime < 2500) {
+        comboCount = Math.min(comboCount + 1, 5);
+      } else {
+        comboCount = 1;
+      }
+      lastStarTime = now;
+
+      const pointsEarned = 10 * comboCount;
+      score += pointsEarned;
       const currentBest = Math.max(score, highScore);
       scoreText.setText(
         `Score: ${score}   🚩 Wave ${wave}   ${getHearts(lives)}   🏆 Best: ${currentBest}`
       );
 
-      // Floating +10 score feedback
-      const floatText = this.add.text(star.x, star.y - 10, "+10", {
-        fontSize: "16px",
+      soundEffects.playCollect(comboCount);
+
+      // Star Sparkle Particles Burst
+      for (let i = 0; i < 6; i++) {
+        const p = this.physics.add.image(star.x, star.y, "spark_particle");
+        p.body.setAllowGravity(false);
+        const angle = (Math.PI * 2 * i) / 6;
+        p.setVelocity(Math.cos(angle) * 110, Math.sin(angle) * 110);
+        this.tweens.add({
+          targets: p,
+          alpha: 0,
+          scale: 0.2,
+          duration: 350,
+          onComplete: () => p.destroy(),
+        });
+      }
+
+      // Floating score & combo popup
+      const comboLabel = comboCount > 1 ? `+${pointsEarned} (${comboCount}x COMBO!)` : "+10";
+      const comboColor = comboCount > 2 ? "#C084FC" : comboCount > 1 ? "#F59E0B" : "#FBBF24";
+
+      const floatText = this.add.text(star.x - 10, star.y - 12, comboLabel, {
+        fontSize: comboCount > 1 ? "18px" : "16px",
         fontFamily: "'Segoe UI', Roboto, sans-serif",
         fontStyle: "bold",
-        fill: "#FBBF24",
+        fill: comboColor,
         stroke: "#000000",
-        strokeThickness: 3,
+        strokeThickness: comboCount > 1 ? 4 : 3,
       });
       this.tweens.add({
         targets: floatText,
-        y: star.y - 40,
+        y: star.y - (comboCount > 1 ? 55 : 40),
         alpha: 0,
-        duration: 600,
+        duration: 650,
         onComplete: () => floatText.destroy(),
       });
-
-      soundEffects.playCollect();
 
       if (this.stars.countActive(true) === 0) {
         wave += 1;
@@ -450,6 +501,20 @@ const GameScene = () => {
           setHighScore(finalBest);
         }
 
+        // Persist run to Top 5 Leaderboard
+        try {
+          const raw = localStorage.getItem("phaserplay_leaderboard");
+          const list = raw ? JSON.parse(raw) : [];
+          list.push({
+            score,
+            wave,
+            stars: Math.floor(score / 10),
+            date: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+          });
+          list.sort((a, b) => b.score - a.score);
+          localStorage.setItem("phaserplay_leaderboard", JSON.stringify(list.slice(0, 5)));
+        } catch {}
+
         setTimeout(() => {
           setGameOverData({
             score,
@@ -504,6 +569,24 @@ const GameScene = () => {
       // Reset jump count on landing
       if (this.player.body.touching.down) {
         jumpCount = 0;
+      }
+
+      // Landing dust puff effect
+      if (this.player.body.touching.down && wasInAir) {
+        wasInAir = false;
+        [-10, 10].forEach((offset) => {
+          const d = this.add.image(this.player.x + offset, this.player.y + 20, "dust_particle");
+          this.tweens.add({
+            targets: d,
+            scaleX: 1.8,
+            scaleY: 0.3,
+            alpha: 0,
+            duration: 250,
+            onComplete: () => d.destroy(),
+          });
+        });
+      } else if (!this.player.body.touching.down) {
+        wasInAir = true;
       }
 
       const isKeyLeft = this.cursors.left.isDown || this.wasd.left.isDown;
@@ -662,6 +745,11 @@ const GameScene = () => {
         onMenu={returnToMenu}
       />
 
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+      />
+
       <TouchControls
         active={gameStarted}
         onMove={handleTouchMove}
@@ -672,6 +760,7 @@ const GameScene = () => {
         <StartScreen
           highScore={highScore}
           onStart={() => setGameStarted(true)}
+          onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         />
       )}
 

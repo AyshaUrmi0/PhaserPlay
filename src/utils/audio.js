@@ -43,18 +43,19 @@ export const soundEffects = {
     } catch {}
   },
 
-  // Star Collect: bright two-tone coin chime
-  playCollect: () => {
+  // Star Collect: bright two-tone coin chime (supports combo pitch shift)
+  playCollect: (combo = 1) => {
     if (isMuted) return;
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
       const now = ctx.currentTime;
+      const pitchShift = 1 + Math.min(combo - 1, 4) * 0.12;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(987.77, now); // B5
-      osc.frequency.setValueAtTime(1318.51, now + 0.07); // E6
+      osc.frequency.setValueAtTime(987.77 * pitchShift, now);
+      osc.frequency.setValueAtTime(1318.51 * pitchShift, now + 0.07);
       gain.gain.setValueAtTime(0.12, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
       osc.connect(gain);
