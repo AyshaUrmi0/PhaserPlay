@@ -15,6 +15,7 @@ const GameScene = () => {
       type: Phaser.AUTO,
       width: 800,
       height: 600,
+      parent: 'phaser-game',
       physics: {
         default: "arcade",
         arcade: {
@@ -168,23 +169,37 @@ const GameScene = () => {
   }, [gameStarted]);
 
   return (
-    <div id="phaser-game">
-    {!gameStarted && (
-      <div
-        style={{
-          backgroundImage:"url('/assets/sky.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          height: '100vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-        {' '}
-        <GameButton onClick={() => setGameStarted(true)} />{' '}
-      </div>
-    )}
-  </div>
+    <div
+      id="phaser-game"
+      style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+        backgroundColor: '#111827',
+        overflow: 'hidden',
+      }}
+    >
+      {!gameStarted && (
+        <div
+          style={{
+            backgroundImage: "url('/assets/sky.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'relative',
+          }}
+        >
+          <GameButton onClick={() => setGameStarted(true)} />
+        </div>
+      )}
+    </div>
   );
 };
 
