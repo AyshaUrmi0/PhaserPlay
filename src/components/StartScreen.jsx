@@ -91,7 +91,7 @@ const StartScreen = ({ highScore, onStart }) => {
         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           ⌨️ <strong>Keys:</strong> <strong style={{ color: "#A855F7" }}>← →</strong> /{" "}
           <strong style={{ color: "#A855F7" }}>A D</strong> to move |{" "}
-          <strong style={{ color: "#A855F7" }}>↑ / W / Space</strong> to jump
+          <strong style={{ color: "#A855F7" }}>↑ / W / Space</strong> to jump (🦘 Double Jump!)
         </span>
       </div>
     </div>

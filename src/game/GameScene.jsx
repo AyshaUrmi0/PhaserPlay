@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import StartScreen from "../components/StartScreen";
 import GameOverModal from "../components/GameOverModal";
 import SoundToggle from "../components/SoundToggle";
+import TouchControls from "../components/TouchControls";
 import { soundEffects } from "../utils/audio";
 const GameScene = () => {
   const [gameStarted, setGameStarted] = useState(false);
@@ -13,6 +14,15 @@ const GameScene = () => {
   });
 
   const gameRef = useRef(null);
+  const touchInputsRef = useRef({ left: false, right: false, jump: false });
+
+  const handleTouchMove = (direction, isDown) => {
+    touchInputsRef.current[direction] = isDown;
+  };
+
+  const handleTouchJump = () => {
+    touchInputsRef.current.jump = true;
+  };
 
   const restartGame = () => {
     setGameOverData(null);
@@ -34,6 +44,7 @@ const GameScene = () => {
     let lives = 3;
     let isInvulnerable = false;
     let wave = 1;
+    let jumpCount = 0;
 
     const getHearts = (count) => {
       return "❤️".repeat(Math.max(0, count)) + "🤍".repeat(Math.max(0, 3 - count));
@@ -137,17 +148,19 @@ const GameScene = () => {
         mouseControlActive = true;
       });
 
-      // Jump on mouse click / tap
+      // Jump on mouse click / tap (Supports Double Jump)
       this.input.on("pointerdown", () => {
         mouseControlActive = true;
-        if (
-          this.player &&
-          this.player.body &&
-          this.player.body.touching.down &&
-          !gameOver
-        ) {
-          this.player.setVelocityY(-550);
-          soundEffects.playJump();
+        if (this.player && this.player.body && !gameOver) {
+          if (this.player.body.touching.down) {
+            jumpCount = 1;
+            this.player.setVelocityY(-550);
+            soundEffects.playJump();
+          } else if (jumpCount === 1) {
+            jumpCount = 2;
+            this.player.setVelocityY(-480);
+            soundEffects.playJump();
+          }
         }
       });
 
@@ -317,21 +330,23 @@ const GameScene = () => {
     function update() {
       if (gameOver) return;
 
+      // Reset jump count on landing
+      if (this.player.body.touching.down) {
+        jumpCount = 0;
+      }
+
       const isKeyLeft = this.cursors.left.isDown || this.wasd.left.isDown;
       const isKeyRight = this.cursors.right.isDown || this.wasd.right.isDown;
-      const isKeyJump =
-        this.cursors.up.isDown ||
-        this.wasd.up.isDown ||
-        this.wasd.space.isDown;
+      const isTouchLeft = touchInputsRef.current.left;
+      const isTouchRight = touchInputsRef.current.right;
 
-      // Yield mouse control when keyboard is used
-      if (isKeyLeft || isKeyRight || isKeyJump) {
+      // Yield mouse control when keyboard or touch controls are used
+      if (isKeyLeft || isKeyRight || isTouchLeft || isTouchRight) {
         mouseControlActive = false;
       }
 
-      let isLeft = isKeyLeft;
-      let isRight = isKeyRight;
-      let isJump = isKeyJump;
+      let isLeft = isKeyLeft || isTouchLeft;
+      let isRight = isKeyRight || isTouchRight;
 
       // Mouse pointer guidance
       if (mouseControlActive) {
@@ -344,7 +359,6 @@ const GameScene = () => {
           pointer.y <= 600
         ) {
           const deltaX = pointer.x - this.player.x;
-          // Deadzone of 25px so character stands still when under the cursor
           if (deltaX < -25) {
             isLeft = true;
           } else if (deltaX > 25) {
@@ -353,6 +367,7 @@ const GameScene = () => {
         }
       }
 
+      // Movement execution
       if (isLeft) {
         this.player.setVelocityX(-160);
         this.player.anims.play("left", true);
@@ -364,9 +379,44 @@ const GameScene = () => {
         this.player.anims.play("turn");
       }
 
-      if (isJump && this.player.body.touching.down) {
-        this.player.setVelocityY(-550);
-        soundEffects.playJump();
+      // Double Jump detection (Keyboard JustDown + Touch Jump)
+      const justJump =
+        Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+        Phaser.Input.Keyboard.JustDown(this.wasd.up) ||
+        Phaser.Input.Keyboard.JustDown(this.wasd.space) ||
+        touchInputsRef.current.jump;
+
+      if (touchInputsRef.current.jump) {
+        touchInputsRef.current.jump = false;
+      }
+
+      if (justJump) {
+        if (this.player.body.touching.down) {
+          jumpCount = 1;
+          this.player.setVelocityY(-550);
+          soundEffects.playJump();
+        } else if (jumpCount === 1) {
+          jumpCount = 2;
+          this.player.setVelocityY(-480);
+          soundEffects.playJump();
+
+          // Sparkle text for double jump
+          const djBadge = this.add.text(this.player.x - 24, this.player.y - 20, "🦘 2x", {
+            fontSize: "16px",
+            fontFamily: "'Segoe UI', Roboto, sans-serif",
+            fontStyle: "bold",
+            fill: "#C084FC",
+            stroke: "#000000",
+            strokeThickness: 3,
+          });
+          this.tweens.add({
+            targets: djBadge,
+            y: this.player.y - 50,
+            alpha: 0,
+            duration: 600,
+            onComplete: () => djBadge.destroy(),
+          });
+        }
       }
     }
 
@@ -394,6 +444,12 @@ const GameScene = () => {
       }}
     >
       <SoundToggle />
+
+      <TouchControls
+        active={gameStarted}
+        onMove={handleTouchMove}
+        onJump={handleTouchJump}
+      />
 
       {!gameStarted && (
         <StartScreen
