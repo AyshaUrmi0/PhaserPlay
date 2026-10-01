@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import Phaser from "phaser";
 import StartScreen from "../components/StartScreen";
 import GameOverModal from "../components/GameOverModal";
-
+import SoundToggle from "../components/SoundToggle";
+import { soundEffects } from "../utils/audio";
 const GameScene = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameKey, setGameKey] = useState(0);
@@ -32,6 +33,7 @@ const GameScene = () => {
     let mouseControlActive = false;
     let lives = 3;
     let isInvulnerable = false;
+    let wave = 1;
 
     const getHearts = (count) => {
       return "❤️".repeat(Math.max(0, count)) + "🤍".repeat(Math.max(0, 3 - count));
@@ -145,11 +147,12 @@ const GameScene = () => {
           !gameOver
         ) {
           this.player.setVelocityY(-550);
+          soundEffects.playJump();
         }
       });
 
       // Score HUD
-      scoreText = this.add.text(16, 16, `Score: 0   ${getHearts(3)}   🏆 Best: ${highScore}`, {
+      scoreText = this.add.text(16, 16, `Score: 0   🚩 Wave 1   ${getHearts(3)}   🏆 Best: ${highScore}`, {
         fontSize: "22px",
         fontFamily: "'Segoe UI', Roboto, sans-serif",
         fontStyle: "bold",
@@ -165,7 +168,7 @@ const GameScene = () => {
       score += 10;
       const currentBest = Math.max(score, highScore);
       scoreText.setText(
-        `Score: ${score}   ${getHearts(lives)}   🏆 Best: ${currentBest}`
+        `Score: ${score}   🚩 Wave ${wave}   ${getHearts(lives)}   🏆 Best: ${currentBest}`
       );
 
       // Floating +10 score feedback
@@ -185,7 +188,31 @@ const GameScene = () => {
         onComplete: () => floatText.destroy(),
       });
 
+      soundEffects.playCollect();
+
       if (this.stars.countActive(true) === 0) {
+        wave += 1;
+        soundEffects.playWaveClear();
+
+        // Wave advancement banner
+        const waveBanner = this.add.text(400, 300, `🚩 WAVE ${wave}!`, {
+          fontSize: "42px",
+          fontFamily: "'Segoe UI', Roboto, sans-serif",
+          fontStyle: "900",
+          fill: "#A855F7",
+          stroke: "#FFFFFF",
+          strokeThickness: 4,
+          shadow: { blur: 15, color: "#A855F7", fill: true },
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+          targets: waveBanner,
+          scale: { from: 0.6, to: 1.2 },
+          alpha: { from: 1, to: 0 },
+          duration: 1200,
+          onComplete: () => waveBanner.destroy(),
+        });
+
         this.stars.children.iterate((child) => {
           child.enableBody(true, child.x, 0, true, true);
         });
@@ -207,8 +234,10 @@ const GameScene = () => {
       lives -= 1;
       const currentBest = Math.max(score, highScore);
       scoreText.setText(
-        `Score: ${score}   ${getHearts(lives)}   🏆 Best: ${currentBest}`
+        `Score: ${score}   🚩 Wave ${wave}   ${getHearts(lives)}   🏆 Best: ${currentBest}`
       );
+
+      soundEffects.playHit();
 
       // Floating damage indicator
       const damageText = this.add.text(player.x - 15, player.y - 25, "-1 ❤️", {
@@ -232,6 +261,7 @@ const GameScene = () => {
 
       if (lives <= 0) {
         gameOver = true;
+        soundEffects.playGameOver();
         this.physics.pause();
         player.setTint(0xff0000);
         player.anims.play("turn");
@@ -252,6 +282,7 @@ const GameScene = () => {
           setGameOverData({
             score,
             stars: Math.floor(score / 10),
+            wave,
             highScore: finalBest,
             isNewHigh,
           });
@@ -335,6 +366,7 @@ const GameScene = () => {
 
       if (isJump && this.player.body.touching.down) {
         this.player.setVelocityY(-550);
+        soundEffects.playJump();
       }
     }
 
@@ -361,6 +393,8 @@ const GameScene = () => {
         fontFamily: "'Segoe UI', Roboto, sans-serif",
       }}
     >
+      <SoundToggle />
+
       {!gameStarted && (
         <StartScreen
           highScore={highScore}
